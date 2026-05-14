@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML 幻灯片演示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* 幻灯片容器 */
+        .slideshow {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 单个幻灯片 */
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateX(100px) scale(0.95);
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(0) scale(1);
+        }
+
+        .slide.prev {
+            transform: translateX(-100px) scale(0.95);
+        }
+
+        /* 内容样式 */
+        .slide h1 {
+            font-size: 3.5rem;
+            margin-bottom: 0.5em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .slide h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1em;
+            color: #fff;
+        }
+
+        .slide p, .slide li {
+            font-size: 1.5rem;
+            line-height: 1.8;
+            max-width: 800px;
+            text-align: center;
+            color: #ccc;
+        }
+
+        .slide ul {
+            list-style: none;
+            text-align: left;
+        }
+
+        .slide li {
+            margin: 0.5em 0;
+            padding-left: 1.5em;
+            position: relative;
+        }
+
+        .slide li::before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+        }
+
+        /* 特殊布局 */
+        .slide.cover {
+            background: radial-gradient(ellipse at center, #16213e 0%, #1a1a2e 100%);
+        }
+
+        .slide.cover h1 {
+            font-size: 4rem;
+        }
+
+        .slide.cover .subtitle {
+            font-size: 1.5rem;
+            color: #888;
+            margin-top: 1em;
+        }
+
+        /* 两栏布局 */
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            width: 100%;
+            max-width: 1000px;
+            align-items: center;
+        }
+
+        .column {
+            text-align: left;
+        }
+
+        .placeholder-img {
+            width: 100%;
+            height: 300px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: rgba(255,255,255,0.8);
+        }
+
+        /* 控制按钮 */
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+            align-items: center;
+        }
+
+        .btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn:hover {
+            background: rgba(255,255,255,0.2);
+            transform: scale(1.1);
+        }
+
+        .page-indicator {
+            font-size: 0.9rem;
+            color: #888;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        /* 进度条 */
+        .progress-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s;
+            z-index: 100;
+        }
+
+        /* 提示 */
+        .hint {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #555;
+            font-size: 0.85rem;
+            opacity: 0.7;
+        }
+
+        /* 动画元素 */
+        .fade-in-up {
+            animation: fadeInUp 0.8s ease forwards;
+            opacity: 0;
+        }
+
+        .delay-1 { animation-delay: 0.2s; }
+        .delay-2 { animation-delay: 0.4s; }
+        .delay-3 { animation-delay: 0.6s; }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .slide { padding: 30px; }
+            .slide h1 { font-size: 2rem; }
+            .slide h2 { font-size: 1.5rem; }
+            .slide p, .slide li { font-size: 1.1rem; }
+            .two-column { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="slideshow">
+        <!-- 幻灯片 1: 封面 -->
+        <div class="slide cover active">
+            <h1 class="fade-in-up">HTML 幻灯片演示</h1>
+            <p class="subtitle fade-in-up delay-1">用纯 HTML/CSS/JS 制作 PPT</p>
+            <p class="fade-in-up delay-2" style="margin-top: 2em; font-size: 1rem; color: #555;">
+                按 → 键或点击右下角按钮开始
+            </p>
+        </div>
+
+        <!-- 幻灯片 2: 内容页 -->
+        <div class="slide">
+            <h2 class="fade-in-up">核心特性</h2>
+            <ul class="fade-in-up delay-1">
+                <li>无需安装任何软件，浏览器即开即用</li>
+                <li>支持键盘方向键、空格、点击切换</li>
+                <li>流畅的 CSS3 过渡动画</li>
+                <li>完全可定制样式和布局</li>
+                <li>可嵌入图片、视频、交互图表</li>
+            </ul>
+        </div>
+
+        <!-- 幻灯片 3: 双栏布局 -->
+        <div class="slide">
+            <h2 class="fade-in-up">灵活布局</h2>
+            <div class="two-column fade-in-up delay-1">
+                <div class="column">
+                    <p>支持各种排版方式：左右分栏、居中标题、图文混排等。完全由 CSS Grid 和 Flexbox 控制。</p>
+                </div>
+                <div class="column">
+                    <div class="placeholder-img">图片区域</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 幻灯片 4: 结束页 -->
+        <div class="slide cover">
+            <h1 class="fade-in-up">谢谢观看</h1>
+            <p class="fade-in-up delay-1" style="margin-top: 1em;">Questions?</p>
+        </div>
+    </div>
+
+    <!-- 控制栏 -->
+    <div class="controls">
+        <button class="btn" onclick="prevSlide()">◀</button>
+        <span class="page-indicator"><span id="current">1</span> / <span id="total">4</span></span>
+        <button class="btn" onclick="nextSlide()">▶</button>
+    </div>
+
+    <div class="hint">← → 方向键切换 | 空格下一页</div>
+
+    <!-- 进度条 -->
+    <div class="progress-bar" id="progress"></div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        
+        document.getElementById('total').textContent = totalSlides;
+
+        function showSlide(index) {
+            // 边界处理
+            if (index < 0) index = 0;
+            if (index >= totalSlides) index = totalSlides - 1;
+            
+            // 移除所有状态
+            slides.forEach((slide, i) => {
+                slide.classList.remove('active', 'prev');
+                if (i < index) {
+                    slide.classList.add('prev');
+                }
+            });
+
+            // 激活当前
+            slides[index].classList.add('active');
+            currentSlide = index;
+
+            // 更新指示器
+            document.getElementById('current').textContent = currentSlide + 1;
+            
+            // 更新进度条
+            const progress = ((currentSlide + 1) / totalSlides) * 100;
+            document.getElementById('progress').style.width = progress + '%';
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                showSlide(currentSlide + 1);
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                showSlide(currentSlide - 1);
+            }
+        }
+
+        // 键盘控制
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                prevSlide();
+            }
+        });
+
+        // 触摸滑动支持（移动端）
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        document.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            const swipeThreshold = 50;
+            const diff = touchStartX - touchEndX;
+            
+            if (Math.abs(diff) > swipeThreshold) {
+                if (diff > 0) {
+                    nextSlide(); // 向左滑，下一页
+                } else {
+                    prevSlide(); // 向右滑，上一页
+                }
+            }
+        }
+
+        // 初始化
+        showSlide(0);
+    </script>
+
+</body>
+</html>
